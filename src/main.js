@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+ import { createClient } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -39,11 +39,13 @@ async function load() {
       <small>${n.data ? new Date(n.data).toLocaleDateString('pt-BR') : ''}</small>
       <h3>${esc(n.titulo)}</h3>
       <p>${esc(n.conteudo)}</p>
+      ${n.imagem ? `<img src="${esc(n.imagem)}" alt="">` : ''}
     </article>
   `).join('');
 }
 
 const loginForm = document.querySelector('#login-form');
+const publishArea = document.querySelector('#publish-area');
 
 if (loginForm) {
   loginForm.addEventListener('submit', async e => {
@@ -68,10 +70,43 @@ if (loginForm) {
 
     message.textContent = 'Login realizado com sucesso!';
 
-    setTimeout(() => {
-      window.location.hash = '#admin';
-    }, 500);
+    if (publishArea) {
+      publishArea.style.display = 'block';
+    }
   });
 }
 
-load();  
+const newsForm = document.querySelector('#news-form');
+
+if (newsForm) {
+  newsForm.addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const title = document.querySelector('#news-title').value;
+    const content = document.querySelector('#news-content').value;
+    const image = document.querySelector('#news-image').value;
+    const message = document.querySelector('#news-message');
+
+    message.textContent = 'Publicando...';
+
+    const { error } = await supabase
+      .from('noticias')
+      .insert({
+        titulo: title,
+        conteudo: content,
+        imagem: image || null
+      });
+
+    if (error) {
+      console.error(error);
+      message.textContent = 'Erro ao publicar a notícia.';
+      return;
+    }
+
+    message.textContent = 'Notícia publicada com sucesso! 🎉';
+    newsForm.reset();
+    await load();
+  });
+}
+
+load();
