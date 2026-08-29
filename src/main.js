@@ -5,6 +5,11 @@ const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(url, key);
 
 const list = document.querySelector('#news-list');
+const loginForm = document.querySelector('#login-form');
+const publishArea = document.querySelector('#publish-area');
+const loginMessage = document.querySelector('#login-message');
+const newsForm = document.querySelector('#news-form');
+const newsMessage = document.querySelector('#news-message');
 
 const esc = s => String(s ?? '').replace(
   /[&<>"']/g,
@@ -44,8 +49,15 @@ async function load() {
   `).join('');
 }
 
-const loginForm = document.querySelector('#login-form');
-const publishArea = document.querySelector('#publish-area');
+async function checkLogin() {
+  const { data } = await supabase.auth.getSession();
+
+  if (data.session && publishArea) {
+    publishArea.style.display = 'block';
+    if (loginForm) loginForm.style.display = 'none';
+    if (loginMessage) loginMessage.textContent = 'Login realizado com sucesso!';
+  }
+}
 
 if (loginForm) {
   loginForm.addEventListener('submit', async e => {
@@ -53,9 +65,8 @@ if (loginForm) {
 
     const email = document.querySelector('#login-email').value;
     const password = document.querySelector('#login-password').value;
-    const message = document.querySelector('#login-message');
 
-    message.textContent = 'Entrando...';
+    loginMessage.textContent = 'Entrando...';
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -64,49 +75,47 @@ if (loginForm) {
 
     if (error) {
       console.error(error);
-      message.textContent = 'E-mail ou senha incorretos.';
+      loginMessage.textContent = 'E-mail ou senha incorretos.';
       return;
     }
 
-    message.textContent = 'Login realizado com sucesso!';
+    loginMessage.textContent = 'Login realizado com sucesso!';
 
-    if (publishArea) {
-      publishArea.style.display = 'block';
-    }
+    publishArea.style.display = 'block';
+    loginForm.style.display = 'none';
   });
 }
-
-const newsForm = document.querySelector('#news-form');
 
 if (newsForm) {
   newsForm.addEventListener('submit', async e => {
     e.preventDefault();
 
-    const title = document.querySelector('#news-title').value;
-    const content = document.querySelector('#news-content').value;
-    const image = document.querySelector('#news-image').value;
-    const message = document.querySelector('#news-message');
+    const titulo = document.querySelector('#news-title').value.trim();
+    const conteudo = document.querySelector('#news-content').value.trim();
+    const imagem = document.querySelector('#news-image').value.trim();
 
-    message.textContent = 'Publicando...';
+    newsMessage.textContent = 'Publicando...';
 
     const { error } = await supabase
       .from('noticias')
       .insert({
-        titulo: title,
-        conteudo: content,
-        imagem: image || null
+        titulo,
+        conteudo,
+        imagem: imagem || null
       });
 
     if (error) {
       console.error(error);
-      message.textContent = 'Erro ao publicar a notícia.';
+      newsMessage.textContent = 'Erro ao publicar a notícia.';
       return;
     }
 
-    message.textContent = 'Notícia publicada com sucesso! 🎉';
+    newsMessage.textContent = 'Notícia publicada com sucesso! 🎉';
+
     newsForm.reset();
     await load();
   });
 }
 
 load();
+checkLogin();
