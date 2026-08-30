@@ -1,4 +1,4 @@
- import { createClient } from '@supabase/supabase-js';
+  import { createClient } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -23,6 +23,36 @@ const esc = s => String(s ?? '').replace(
 );
 
 async function load() {
+  const params = new URLSearchParams(window.location.search);
+  const noticiaId = params.get('noticia');
+
+  // Se estiver abrindo uma notícia específica
+  if (noticiaId) {
+    const { data: noticia, error } = await supabase
+      .from('noticias')
+      .select('id,titulo,conteudo,imagem,data')
+      .eq('id', noticiaId)
+      .single();
+
+    if (error || !noticia) {
+      list.innerHTML = '<div class="empty">Notícia não encontrada.</div>';
+      return;
+    }
+
+    list.innerHTML = `
+      <article class="card">
+        <small>${noticia.data ? new Date(noticia.data).toLocaleDateString('pt-BR') : ''}</small>
+        <h2>${esc(noticia.titulo)}</h2>
+        ${noticia.imagem ? `<img src="${esc(noticia.imagem)}" alt="">` : ''}
+        <p>${esc(noticia.conteudo)}</p>
+        <a href="/">← Voltar para as notícias</a>
+      </article>
+    `;
+
+    return;
+  }
+
+  // Página inicial com todas as notícias
   const { data, error } = await supabase
     .from('noticias')
     .select('id,titulo,conteudo,imagem,data')
@@ -45,6 +75,7 @@ async function load() {
       <h3>${esc(n.titulo)}</h3>
       <p>${esc(n.conteudo)}</p>
       ${n.imagem ? `<img src="${esc(n.imagem)}" alt="">` : ''}
+      <a href="?noticia=${encodeURIComponent(n.id)}">Ler notícia completa →</a>
     </article>
   `).join('');
 }
@@ -54,8 +85,14 @@ async function checkLogin() {
 
   if (data.session && publishArea) {
     publishArea.style.display = 'block';
-    if (loginForm) loginForm.style.display = 'none';
-    if (loginMessage) loginMessage.textContent = 'Login realizado com sucesso!';
+
+    if (loginForm) {
+      loginForm.style.display = 'none';
+    }
+
+    if (loginMessage) {
+      loginMessage.textContent = 'Login realizado com sucesso!';
+    }
   }
 }
 
