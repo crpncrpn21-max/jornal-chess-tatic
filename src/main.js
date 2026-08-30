@@ -1,4 +1,4 @@
-  import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -39,11 +39,26 @@ async function load() {
       return;
     }
 
+    // SEO da notícia
+    document.title = `${noticia.titulo} | Jornal Chess Tatic`;
+
+    let metaDescription = document.querySelector('meta[name="description"]');
+
+    if (!metaDescription) {
+      metaDescription = document.createElement('meta');
+      metaDescription.name = 'description';
+      document.head.appendChild(metaDescription);
+    }
+
+    metaDescription.content = noticia.conteudo
+      ? noticia.conteudo.substring(0, 155)
+      : 'Notícia do Jornal Chess Tatic sobre o mundo do xadrez.';
+
     list.innerHTML = `
       <article class="card">
         <small>${noticia.data ? new Date(noticia.data).toLocaleDateString('pt-BR') : ''}</small>
         <h2>${esc(noticia.titulo)}</h2>
-        ${noticia.imagem ? `<img src="${esc(noticia.imagem)}" alt="">` : ''}
+        ${noticia.imagem ? `<img src="${esc(noticia.imagem)}" alt="${esc(noticia.titulo)}">` : ''}
         <p>${esc(noticia.conteudo)}</p>
         <a href="/">← Voltar para as notícias</a>
       </article>
@@ -74,7 +89,7 @@ async function load() {
       <small>${n.data ? new Date(n.data).toLocaleDateString('pt-BR') : ''}</small>
       <h3>${esc(n.titulo)}</h3>
       <p>${esc(n.conteudo)}</p>
-      ${n.imagem ? `<img src="${esc(n.imagem)}" alt="">` : ''}
+      ${n.imagem ? `<img src="${esc(n.imagem)}" alt="${esc(n.titulo)}">` : ''}
       <a href="?noticia=${encodeURIComponent(n.id)}">Ler notícia completa →</a>
     </article>
   `).join('');
@@ -155,4 +170,4 @@ if (newsForm) {
 }
 
 load();
-checkLogin();
+checkLogin(); 
