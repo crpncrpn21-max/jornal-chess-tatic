@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+ import { createClient } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -10,6 +10,8 @@ const publishArea = document.querySelector('#publish-area');
 const loginMessage = document.querySelector('#login-message');
 const newsForm = document.querySelector('#news-form');
 const newsMessage = document.querySelector('#news-message');
+
+let loggedIn = false;
 
 const esc = s => String(s ?? '').replace(
   /[&<>"']/g,
@@ -26,7 +28,6 @@ async function load() {
   const params = new URLSearchParams(window.location.search);
   const noticiaId = params.get('noticia');
 
-  // Se estiver abrindo uma notícia específica
   if (noticiaId) {
     const { data: noticia, error } = await supabase
       .from('noticias')
@@ -39,7 +40,6 @@ async function load() {
       return;
     }
 
-    // SEO da notícia
     document.title = `${noticia.titulo} | Jornal Chess Tatic`;
 
     let metaDescription = document.querySelector('meta[name="description"]');
@@ -60,14 +60,19 @@ async function load() {
         <h2>${esc(noticia.titulo)}</h2>
         ${noticia.imagem ? `<img src="${esc(noticia.imagem)}" alt="${esc(noticia.titulo)}">` : ''}
         <p>${esc(noticia.conteudo)}</p>
+        ${loggedIn ? `<button class="delete-news" data-id="${esc(noticia.id)}">Excluir notícia</button>` : ''}
+        <br><br>
         <a href="/">← Voltar para as notícias</a>
       </article>
     `;
 
+    document.querySelectorAll('.delete-news').forEach(button => {
+      button.addEventListener('click', () => deleteNews(button.dataset.id));
+    });
+
     return;
   }
 
-  // Página inicial com todas as notícias
   const { data, error } = await supabase
     .from('noticias')
     .select('id,titulo,conteudo,imagem,data')
@@ -91,12 +96,37 @@ async function load() {
       <p>${esc(n.conteudo)}</p>
       ${n.imagem ? `<img src="${esc(n.imagem)}" alt="${esc(n.titulo)}">` : ''}
       <a href="?noticia=${encodeURIComponent(n.id)}">Ler notícia completa →</a>
+      ${loggedIn ? `<br><br><button class="delete-news" data-id="${esc(n.id)}">Excluir notícia</button>` : ''}
     </article>
   `).join('');
+
+  document.querySelectorAll('.delete-news').forEach(button => {
+    button.addEventListener('click', () => deleteNews(button.dataset.id));
+  });
+}
+
+async function deleteNews(id) {
+  if (!confirm('Tem certeza que deseja excluir esta notícia?')) return;
+
+  const { error } = await supabase
+    .from('noticias')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error(error);
+    alert('Não foi possível excluir a notícia.');
+    return;
+  }
+
+  alert('Notícia excluída com sucesso!');
+  window.location.href = '/';
 }
 
 async function checkLogin() {
   const { data } = await supabase.auth.getSession();
+
+  loggedIn = !!data.session;
 
   if (data.session && publishArea) {
     publishArea.style.display = 'block';
@@ -131,10 +161,13 @@ if (loginForm) {
       return;
     }
 
-    loginMessage.textContent = 'Login realizado com sucesso!';
+    loggedIn = true;
+    loginMessage.textContent = 'Login realizado com sucesso! 🎉';
 
     publishArea.style.display = 'block';
     loginForm.style.display = 'none';
+
+    await load();
   });
 }
 
@@ -169,5 +202,5 @@ if (newsForm) {
   });
 }
 
-load();
-checkLogin(); 
+await checkLogin();
+await load();
