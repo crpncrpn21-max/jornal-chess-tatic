@@ -1,4 +1,5 @@
- import { createClient } from '@supabase/supabase-js';
+ ```javascript
+import { createClient } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -10,6 +11,7 @@ const publishArea = document.querySelector('#publish-area');
 const loginMessage = document.querySelector('#login-message');
 const newsForm = document.querySelector('#news-form');
 const newsMessage = document.querySelector('#news-message');
+const logoutButton = document.querySelector('#logout-button');
 
 let loggedIn = false;
 
@@ -120,7 +122,7 @@ async function deleteNews(id) {
   }
 
   alert('Notícia excluída com sucesso!');
-  window.location.href = '/';
+  await load();
 }
 
 async function checkLogin() {
@@ -128,8 +130,10 @@ async function checkLogin() {
 
   loggedIn = !!data.session;
 
-  if (data.session && publishArea) {
-    publishArea.style.display = 'block';
+  if (data.session) {
+    if (publishArea) {
+      publishArea.style.display = 'block';
+    }
 
     if (loginForm) {
       loginForm.style.display = 'none';
@@ -138,9 +142,18 @@ async function checkLogin() {
     if (loginMessage) {
       loginMessage.textContent = 'Login realizado com sucesso!';
     }
+  } else {
+    if (publishArea) {
+      publishArea.style.display = 'none';
+    }
+
+    if (loginForm) {
+      loginForm.style.display = 'block';
+    }
   }
 }
 
+/* LOGIN */
 if (loginForm) {
   loginForm.addEventListener('submit', async e => {
     e.preventDefault();
@@ -162,6 +175,7 @@ if (loginForm) {
     }
 
     loggedIn = true;
+
     loginMessage.textContent = 'Login realizado com sucesso! 🎉';
 
     publishArea.style.display = 'block';
@@ -171,6 +185,7 @@ if (loginForm) {
   });
 }
 
+/* PUBLICAR NOTÍCIA */
 if (newsForm) {
   newsForm.addEventListener('submit', async e => {
     e.preventDefault();
@@ -198,9 +213,60 @@ if (newsForm) {
     newsMessage.textContent = 'Notícia publicada com sucesso! 🎉';
 
     newsForm.reset();
+
     await load();
   });
 }
 
+/* LOGOUT */
+if (logoutButton) {
+  logoutButton.addEventListener('click', async () => {
+
+    logoutButton.disabled = true;
+    logoutButton.textContent = 'Saindo...';
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error(error);
+
+      logoutButton.disabled = false;
+      logoutButton.textContent = 'Sair do administrador';
+
+      alert('Não foi possível sair. Tente novamente.');
+      return;
+    }
+
+    loggedIn = false;
+
+    publishArea.style.display = 'none';
+    loginForm.style.display = 'block';
+
+    if (loginMessage) {
+      loginMessage.textContent = 'Você saiu do administrador.';
+    }
+
+    await load();
+
+    window.location.hash = 'inicio';
+  });
+}
+
+/* Atualiza automaticamente quando a sessão muda */
+supabase.auth.onAuthStateChange((_event, session) => {
+  loggedIn = !!session;
+
+  if (session) {
+    if (publishArea) publishArea.style.display = 'block';
+    if (loginForm) loginForm.style.display = 'none';
+  } else {
+    if (publishArea) publishArea.style.display = 'none';
+    if (loginForm) loginForm.style.display = 'block';
+  }
+
+  load();
+});
+
 await checkLogin();
 await load();
+```
