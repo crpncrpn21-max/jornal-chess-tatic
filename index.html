@@ -1,4 +1,4 @@
-  import { createClient } from '@supabase/supabase-js';
+ import { createClient } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -105,7 +105,7 @@ async function load() {
     console.error(result.error);
 
     list.innerHTML =
-      '<div class="empty">Não foi possível carregar as notícias. Vamos verificar a conexão.</div>';
+      '<div class="empty">Não foi possível carregar as notícias.</div>';
 
     return;
   }
@@ -164,11 +164,9 @@ function configurarBotoesExcluir() {
     button.addEventListener('click', async function () {
       const id = button.dataset.id;
 
-      const confirmar = confirm(
-        'Tem certeza que deseja excluir esta notícia?'
-      );
-
-      if (!confirmar) return;
+      if (!confirm('Tem certeza que deseja excluir esta notícia?')) {
+        return;
+      }
 
       button.disabled = true;
       button.textContent = 'Excluindo...';
@@ -254,8 +252,7 @@ if (loginForm) {
     loggedIn = true;
 
     if (loginMessage) {
-      loginMessage.textContent =
-        'Login realizado com sucesso! 🎉';
+      loginMessage.textContent = 'Login realizado com sucesso! 🎉';
     }
 
     if (publishArea) {
@@ -278,22 +275,13 @@ if (newsForm) {
     const contentElement = document.querySelector('#news-content');
     const imageElement = document.querySelector('#news-image');
 
-    const titulo = titleElement
-      ? titleElement.value.trim()
-      : '';
-
-    const conteudo = contentElement
-      ? contentElement.value.trim()
-      : '';
-
-    const imagem = imageElement
-      ? imageElement.value.trim()
-      : '';
+    const titulo = titleElement ? titleElement.value.trim() : '';
+    const conteudo = contentElement ? contentElement.value.trim() : '';
+    const imagem = imageElement ? imageElement.value.trim() : '';
 
     if (!titulo || !conteudo) {
       if (newsMessage) {
-        newsMessage.textContent =
-          'Preencha o título e o conteúdo.';
+        newsMessage.textContent = 'Preencha o título e o conteúdo.';
       }
 
       return;
@@ -315,16 +303,14 @@ if (newsForm) {
       console.error(result.error);
 
       if (newsMessage) {
-        newsMessage.textContent =
-          'Erro ao publicar a notícia.';
+        newsMessage.textContent = 'Erro ao publicar a notícia.';
       }
 
       return;
     }
 
     if (newsMessage) {
-      newsMessage.textContent =
-        'Notícia publicada com sucesso! 🎉';
+      newsMessage.textContent = 'Notícia publicada com sucesso! 🎉';
     }
 
     newsForm.reset();
@@ -362,8 +348,7 @@ if (logoutButton) {
     }
 
     if (loginMessage) {
-      loginMessage.textContent =
-        'Você saiu do administrador.';
+      loginMessage.textContent = 'Você saiu do administrador.';
     }
 
     await load();
