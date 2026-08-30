@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
 const supabase = createClient(url, key);
 
 const list = document.querySelector('#news-list');
@@ -15,36 +16,48 @@ const logoutButton = document.querySelector('#logout-button');
 
 let loggedIn = false;
 
-const esc = s => String(s ?? '').replace(
-  /[&<>"']/g,
-  c => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  }[c])
-);
+function esc(value) {
+  return String(value ?? '').replace(/[&<>"']/g, function (char) {
+    const entities = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+
+    return entities[char];
+  });
+}
 
 async function load() {
   const params = new URLSearchParams(window.location.search);
   const noticiaId = params.get('noticia');
 
+  if (!list) {
+    return;
+  }
+
   if (noticiaId) {
-    const { data: noticia, error } = await supabase
+    const result = await supabase
       .from('noticias')
       .select('id,titulo,conteudo,imagem,data')
       .eq('id', noticiaId)
       .single();
+
+    const noticia = result.data;
+    const error = result.error;
 
     if (error || !noticia) {
       list.innerHTML = '<div class="empty">Notícia não encontrada.</div>';
       return;
     }
 
-    document.title = noticia.titulo + ' | Jornal Chess Tatic';
+    document.title = esc(noticia.titulo) + ' | Jornal Chess Tatic';
 
-    let metaDescription = document.querySelector('meta[name="description"]');
+    let metaDescription = document.querySelector(
+      'meta[name="description"]'
+    );
 
     if (!metaDescription) {
       metaDescription = document.createElement('meta');
@@ -53,72 +66,127 @@ async function load() {
     }
 
     metaDescription.content = noticia.conteudo
-      ? noticia.conteudo.substring(0, 155)
+      ? String(noticia.conteudo).substring(0, 155)
       : 'Notícia do Jornal Chess Tatic sobre o mundo do xadrez.';
 
-    list.innerHTML = `
-      <article class="card">
-        <small>${noticia.data ? new Date(noticia.data).toLocaleDateString('pt-BR') : ''}</small>
-        <h2>${esc(noticia.titulo)}</h2>
-        ${noticia.imagem ? `<img src="${esc(noticia.imagem)}" alt="${esc(noticia.titulo)}">` : ''}
-        <p>${esc(noticia.conteudo)}</p>
-        ${loggedIn ? `<button class="delete-news" data-id="${esc(noticia.id)}">Excluir notícia</button>` : ''}
-        <br><br>
-        <a href="/">← Voltar para as notícias</a>
-      </article>
-    `;
+    let html = '';
 
-    document.querySelectorAll('.delete-news').forEach(button => {
-      button.addEventListener('click', () => deleteNews(button.dataset.id));
+    html += '<article class="card">';
+    html += '<small>';
+
+    if (noticia.data) {
+      html += new Date(noticia.data).toLocaleDateString('pt-BR');
+    }
+
+    html += '</small>';
+    html += '<h2>' + esc(noticia.titulo) + '</h2>';
+
+    if (noticia.imagem) {
+      html += '<img src="' + esc(noticia.imagem) + '" alt="' +
+        esc(noticia.titulo) + '">';
+    }
+
+    html += '<p>' + esc(noticia.conteudo) + '</p>';
+
+    if (loggedIn) {
+      html += '<button class="delete-news" data-id="' +
+        esc(noticia.id) + '">Excluir notícia</button>';
+    }
+
+    html += '<br><br>';
+    html += '<a href="/">← Voltar para as notícias</a>';
+    html += '</article>';
+
+    list.innerHTML = html;
+
+    document.querySelectorAll('.delete-news').forEach(function (button) {
+      button.addEventListener('click', function () {
+        deleteNews(button.dataset.id);
+      });
     });
 
     return;
   }
 
-  const { data, error } = await supabase
+  const result = await supabase
     .from('noticias')
     .select('id,titulo,conteudo,imagem,data')
     .order('data', { ascending: false });
 
+  const data = result.data;
+  const error = result.error;
+
   if (error) {
     console.error(error);
-    list.innerHTML = '<div class="empty">Não foi possível carregar as notícias. Vamos verificar a conexão.</div>';
+    list.innerHTML =
+      '<div class="empty">Não foi possível carregar as notícias. Vamos verificar a conexão.</div>';
     return;
   }
 
-  if (!data || !data.length) {
-    list.innerHTML = '<div class="empty">Ainda não há notícias publicadas.</div>';
+  if (!data || data.length === 0) {
+    list.innerHTML =
+      '<div class="empty">Ainda não há notícias publicadas.</div>';
     return;
   }
 
-  list.innerHTML = data.map(n => `
-    <article class="card">
-      <small>${n.data ? new Date(n.data).toLocaleDateString('pt-BR') : ''}</small>
-      <h3>${esc(n.titulo)}</h3>
-      <p>${esc(n.conteudo)}</p>
-      ${n.imagem ? `<img src="${esc(n.imagem)}" alt="${esc(n.titulo)}">` : ''}
-      <a href="?noticia=${encodeURIComponent(n.id)}">Ler notícia completa →</a>
-      ${loggedIn ? `<br><br><button class="delete-news" data-id="${esc(n.id)}">Excluir notícia</button>` : ''}
-    </article>
-  `).join('');
+  list.innerHTML = data.map(function (n) {
+    let html = '';
 
-  document.querySelectorAll('.delete-news').forEach(button => {
-    button.addEventListener('click', () => deleteNews(button.dataset.id));
+    html += '<article class="card">';
+    html += '<small>';
+
+    if (n.data) {
+      html += new Date(n.data).toLocaleDateString('pt-BR');
+    }
+
+    html += '</small>';
+    html += '<h3>' + esc(n.titulo) + '</h3>';
+    html += '<p>' + esc(n.conteudo) + '</p>';
+
+    if (n.imagem) {
+      html += '<img src="' + esc(n.imagem) + '" alt="' +
+        esc(n.titulo) + '">';
+    }
+
+    html += '<a href="?noticia=' +
+      encodeURIComponent(n.id) +
+      '">Ler notícia completa →</a>';
+
+    if (loggedIn) {
+      html += '<br><br>';
+      html += '<button class="delete-news" data-id="' +
+        esc(n.id) +
+        '">Excluir notícia</button>';
+    }
+
+    html += '</article>';
+
+    return html;
+  }).join('');
+
+  document.querySelectorAll('.delete-news').forEach(function (button) {
+    button.addEventListener('click', function () {
+      deleteNews(button.dataset.id);
+    });
   });
 }
 
 async function deleteNews(id) {
-  if (!confirm('Tem certeza que deseja excluir esta notícia?')) {
+  const confirmed = confirm(
+    'Tem certeza que deseja excluir esta notícia?'
+  );
+
+  if (!confirmed) {
     return;
   }
 
-  const { error } = await supabase
+  const result = await supabase
     .from('noticias')
     .delete()
     .eq('id', id);
 
-  if (error) {
-    console.error(error);
+  if (result.error) {
+    console.error(result.error);
     alert('Não foi possível excluir a notícia.');
     return;
   }
@@ -128,78 +196,129 @@ async function deleteNews(id) {
 }
 
 async function checkLogin() {
-  const { data } = await supabase.auth.getSession();
+  const result = await supabase.auth.getSession();
+  const session = result.data.session;
 
-  loggedIn = !!data.session;
+  loggedIn = !!session;
 
-  if (data.session) {
-    if (publishArea) publishArea.style.display = 'block';
-    if (loginForm) loginForm.style.display = 'none';
-    if (loginMessage) loginMessage.textContent = 'Login realizado com sucesso!';
+  if (session) {
+    if (publishArea) {
+      publishArea.style.display = 'block';
+    }
+
+    if (loginForm) {
+      loginForm.style.display = 'none';
+    }
+
+    if (loginMessage) {
+      loginMessage.textContent = 'Login realizado com sucesso!';
+    }
   } else {
-    if (publishArea) publishArea.style.display = 'none';
-    if (loginForm) loginForm.style.display = 'block';
+    if (publishArea) {
+      publishArea.style.display = 'none';
+    }
+
+    if (loginForm) {
+      loginForm.style.display = 'block';
+    }
   }
 }
 
-/* LOGIN */
 if (loginForm) {
-  loginForm.addEventListener('submit', async e => {
+  loginForm.addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    const email = document.querySelector('#login-email').value;
-    const password = document.querySelector('#login-password').value;
+    const emailElement = document.querySelector('#login-email');
+    const passwordElement = document.querySelector('#login-password');
 
-    loginMessage.textContent = 'Entrando...';
+    const email = emailElement ? emailElement.value : '';
+    const password = passwordElement ? passwordElement.value : '';
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
+    if (loginMessage) {
+      loginMessage.textContent = 'Entrando...';
+    }
+
+    const result = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password
     });
 
-    if (error) {
-      console.error(error);
-      loginMessage.textContent = 'E-mail ou senha incorretos.';
+    if (result.error) {
+      console.error(result.error);
+
+      if (loginMessage) {
+        loginMessage.textContent = 'E-mail ou senha incorretos.';
+      }
+
       return;
     }
 
     loggedIn = true;
 
-    loginMessage.textContent = 'Login realizado com sucesso! 🎉';
+    if (loginMessage) {
+      loginMessage.textContent =
+        'Login realizado com sucesso! 🎉';
+    }
 
-    if (publishArea) publishArea.style.display = 'block';
-    if (loginForm) loginForm.style.display = 'none';
+    if (publishArea) {
+      publishArea.style.display = 'block';
+    }
+
+    if (loginForm) {
+      loginForm.style.display = 'none';
+    }
 
     await load();
   });
 }
 
-/* PUBLICAR NOTÍCIA */
 if (newsForm) {
-  newsForm.addEventListener('submit', async e => {
+  newsForm.addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    const titulo = document.querySelector('#news-title').value.trim();
-    const conteudo = document.querySelector('#news-content').value.trim();
-    const imagem = document.querySelector('#news-image').value.trim();
+    const titleElement = document.querySelector('#news-title');
+    const contentElement = document.querySelector('#news-content');
+    const imageElement = document.querySelector('#news-image');
 
-    newsMessage.textContent = 'Publicando...';
+    const titulo = titleElement
+      ? titleElement.value.trim()
+      : '';
 
-    const { error } = await supabase
+    const conteudo = contentElement
+      ? contentElement.value.trim()
+      : '';
+
+    const imagem = imageElement
+      ? imageElement.value.trim()
+      : '';
+
+    if (newsMessage) {
+      newsMessage.textContent = 'Publicando...';
+    }
+
+    const result = await supabase
       .from('noticias')
       .insert({
-        titulo,
-        conteudo,
+        titulo: titulo,
+        conteudo: conteudo,
         imagem: imagem || null
       });
 
-    if (error) {
-      console.error(error);
-      newsMessage.textContent = 'Erro ao publicar a notícia.';
+    if (result.error) {
+      console.error(result.error);
+
+      if (newsMessage) {
+        newsMessage.textContent =
+          'Erro ao publicar a notícia.';
+      }
+
       return;
     }
 
-    newsMessage.textContent = 'Notícia publicada com sucesso! 🎉';
+    if (newsMessage) {
+      newsMessage.textContent =
+        'Notícia publicada com sucesso! 🎉';
+    }
 
     newsForm.reset();
 
@@ -207,16 +326,15 @@ if (newsForm) {
   });
 }
 
-/* LOGOUT */
 if (logoutButton) {
-  logoutButton.addEventListener('click', async () => {
+  logoutButton.addEventListener('click', async function () {
     logoutButton.disabled = true;
     logoutButton.textContent = 'Saindo...';
 
-    const { error } = await supabase.auth.signOut();
+    const result = await supabase.auth.signOut();
 
-    if (error) {
-      console.error(error);
+    if (result.error) {
+      console.error(result.error);
 
       logoutButton.disabled = false;
       logoutButton.textContent = 'Sair do administrador';
@@ -227,11 +345,17 @@ if (logoutButton) {
 
     loggedIn = false;
 
-    if (publishArea) publishArea.style.display = 'none';
-    if (loginForm) loginForm.style.display = 'block';
+    if (publishArea) {
+      publishArea.style.display = 'none';
+    }
+
+    if (loginForm) {
+      loginForm.style.display = 'block';
+    }
 
     if (loginMessage) {
-      loginMessage.textContent = 'Você saiu do administrador.';
+      loginMessage.textContent =
+        'Você saiu do administrador.';
     }
 
     await load();
@@ -240,21 +364,31 @@ if (logoutButton) {
   });
 }
 
-/* Atualiza automaticamente quando a sessão muda */
-supabase.auth.onAuthStateChange((_event, session) => {
+supabase.auth.onAuthStateChange(function (_event, session) {
   loggedIn = !!session;
 
   if (session) {
-    if (publishArea) publishArea.style.display = 'block';
-    if (loginForm) loginForm.style.display = 'none';
+    if (publishArea) {
+      publishArea.style.display = 'block';
+    }
+
+    if (loginForm) {
+      loginForm.style.display = 'none';
+    }
   } else {
-    if (publishArea) publishArea.style.display = 'none';
-    if (loginForm) loginForm.style.display = 'block';
+    if (publishArea) {
+      publishArea.style.display = 'none';
+    }
+
+    if (loginForm) {
+      loginForm.style.display = 'block';
+    }
   }
 
   load();
 });
 
-await checkLogin();
-await load();
+checkLogin().then(function () {
+  return load();
+});
 ```
