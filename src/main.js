@@ -1,5 +1,4 @@
- ```javascript
-import { createClient } from '@supabase/supabase-js';
+  import { createClient } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -25,6 +24,7 @@ function esc(value) {
       '"': '&quot;',
       "'": '&#039;'
     };
+
     return entities[char];
   });
 }
@@ -43,66 +43,55 @@ async function load() {
       .single();
 
     if (result.error || !result.data) {
-      console.error('Erro ao carregar notícia:', result.error);
       list.innerHTML = '<div class="empty">Notícia não encontrada.</div>';
       return;
     }
 
     const noticia = result.data;
 
-    document.title = esc(noticia.titulo) + ' | Jornal Chess Tatic';
+    document.title = noticia.titulo + ' | Jornal Chess Tatic';
 
-    let metaDescription = document.querySelector(
-      'meta[name="description"]'
-    );
+    const meta = document.querySelector('meta[name="description"]');
 
-    if (!metaDescription) {
-      metaDescription = document.createElement('meta');
-      metaDescription.name = 'description';
-      document.head.appendChild(metaDescription);
+    if (meta) {
+      meta.content = noticia.conteudo
+        ? String(noticia.conteudo).substring(0, 155)
+        : 'Notícia do Jornal Chess Tatic sobre o mundo do xadrez.';
     }
 
-    metaDescription.content = noticia.conteudo
-      ? String(noticia.conteudo).substring(0, 155)
-      : 'Notícia do Jornal Chess Tatic sobre o mundo do xadrez.';
+    let html = '';
 
-    let html = '<article class="card">';
+    html += '<article class="card">';
 
+    html += '<small>';
     if (noticia.data) {
-      html += '<small>' +
-        new Date(noticia.data).toLocaleDateString('pt-BR') +
-        '</small>';
+      html += new Date(noticia.data).toLocaleDateString('pt-BR');
     }
+    html += '</small>';
 
     html += '<h2>' + esc(noticia.titulo) + '</h2>';
 
     if (noticia.imagem) {
-      html += '<img src="' +
-        esc(noticia.imagem) +
-        '" alt="' +
-        esc(noticia.titulo) +
-        '">';
+      html += '<img src="' + esc(noticia.imagem) + '" alt="' + esc(noticia.titulo) + '">';
     }
 
     html += '<p>' + esc(noticia.conteudo) + '</p>';
 
     if (loggedIn) {
-      html += '<button class="delete-news" data-id="' +
-        esc(noticia.id) +
-        '">Excluir notícia</button>';
+      html += '<br>';
+      html += '<button class="delete-news" data-id="' + esc(noticia.id) + '">';
+      html += 'Excluir notícia';
+      html += '</button>';
     }
 
     html += '<br><br>';
     html += '<a href="/">← Voltar para as notícias</a>';
+
     html += '</article>';
 
     list.innerHTML = html;
 
-    document.querySelectorAll('.delete-news').forEach(function (button) {
-      button.addEventListener('click', function () {
-        deleteNews(button.dataset.id);
-      });
-    });
+    configurarBotoesExcluir();
 
     return;
   }
@@ -113,49 +102,51 @@ async function load() {
     .order('data', { ascending: false });
 
   if (result.error) {
-    console.error('Erro ao carregar notícias:', result.error);
+    console.error(result.error);
+
     list.innerHTML =
       '<div class="empty">Não foi possível carregar as notícias.</div>';
+
     return;
   }
 
-  const data = result.data;
+  const noticias = result.data || [];
 
-  if (!data || data.length === 0) {
+  if (noticias.length === 0) {
     list.innerHTML =
       '<div class="empty">Ainda não há notícias publicadas.</div>';
+
     return;
   }
 
-  list.innerHTML = data.map(function (n) {
-    let html = '<article class="card">';
+  list.innerHTML = noticias.map(function (n) {
+    let html = '';
 
+    html += '<article class="card">';
+
+    html += '<small>';
     if (n.data) {
-      html += '<small>' +
-        new Date(n.data).toLocaleDateString('pt-BR') +
-        '</small>';
+      html += new Date(n.data).toLocaleDateString('pt-BR');
     }
+    html += '</small>';
 
     html += '<h3>' + esc(n.titulo) + '</h3>';
+
     html += '<p>' + esc(n.conteudo) + '</p>';
 
     if (n.imagem) {
-      html += '<img src="' +
-        esc(n.imagem) +
-        '" alt="' +
-        esc(n.titulo) +
-        '">';
+      html += '<img src="' + esc(n.imagem) + '" alt="' + esc(n.titulo) + '">';
     }
 
-    html += '<a href="?noticia=' +
-      encodeURIComponent(n.id) +
-      '">Ler notícia completa →</a>';
+    html += '<a href="?noticia=' + encodeURIComponent(n.id) + '">';
+    html += 'Ler notícia completa →';
+    html += '</a>';
 
     if (loggedIn) {
       html += '<br><br>';
-      html += '<button class="delete-news" data-id="' +
-        esc(n.id) +
-        '">Excluir notícia</button>';
+      html += '<button class="delete-news" data-id="' + esc(n.id) + '">';
+      html += 'Excluir notícia';
+      html += '</button>';
     }
 
     html += '</article>';
@@ -163,54 +154,69 @@ async function load() {
     return html;
   }).join('');
 
+  configurarBotoesExcluir();
+}
+
+function configurarBotoesExcluir() {
   document.querySelectorAll('.delete-news').forEach(function (button) {
-    button.addEventListener('click', function () {
-      deleteNews(button.dataset.id);
+    button.addEventListener('click', async function () {
+      const id = button.dataset.id;
+
+      if (!confirm('Tem certeza que deseja excluir esta notícia?')) {
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = 'Excluindo...';
+
+      const result = await supabase
+        .from('noticias')
+        .delete()
+        .eq('id', id);
+
+      if (result.error) {
+        console.error(result.error);
+
+        alert('Não foi possível excluir a notícia.');
+
+        button.disabled = false;
+        button.textContent = 'Excluir notícia';
+
+        return;
+      }
+
+      alert('Notícia excluída com sucesso!');
+
+      await load();
     });
   });
 }
 
-async function deleteNews(id) {
-  const confirmed = confirm(
-    'Tem certeza que deseja excluir esta notícia?'
-  );
-
-  if (!confirmed) return;
-
-  const result = await supabase
-    .from('noticias')
-    .delete()
-    .eq('id', id);
-
-  if (result.error) {
-    console.error('Erro ao excluir:', result.error);
-    alert(
-      'Não foi possível excluir a notícia.\n\n' +
-      result.error.message
-    );
-    return;
-  }
-
-  alert('Notícia excluída com sucesso!');
-  await load();
-}
-
 async function checkLogin() {
   const result = await supabase.auth.getSession();
-  const session = result.data.session;
 
-  loggedIn = !!session;
+  loggedIn = !!result.data.session;
 
-  if (session) {
-    if (publishArea) publishArea.style.display = 'block';
-    if (loginForm) loginForm.style.display = 'none';
+  if (loggedIn) {
+    if (publishArea) {
+      publishArea.style.display = 'block';
+    }
+
+    if (loginForm) {
+      loginForm.style.display = 'none';
+    }
 
     if (loginMessage) {
       loginMessage.textContent = 'Login realizado com sucesso!';
     }
   } else {
-    if (publishArea) publishArea.style.display = 'none';
-    if (loginForm) loginForm.style.display = 'block';
+    if (publishArea) {
+      publishArea.style.display = 'none';
+    }
+
+    if (loginForm) {
+      loginForm.style.display = 'block';
+    }
   }
 }
 
@@ -224,24 +230,17 @@ if (loginForm) {
     const email = emailElement ? emailElement.value.trim() : '';
     const password = passwordElement ? passwordElement.value : '';
 
-    if (!email || !password) {
-      if (loginMessage) {
-        loginMessage.textContent = 'Digite o e-mail e a senha.';
-      }
-      return;
-    }
-
     if (loginMessage) {
       loginMessage.textContent = 'Entrando...';
     }
 
     const result = await supabase.auth.signInWithPassword({
-      email,
-      password
+      email: email,
+      password: password
     });
 
     if (result.error) {
-      console.error('Erro no login:', result.error);
+      console.error(result.error);
 
       if (loginMessage) {
         loginMessage.textContent = 'E-mail ou senha incorretos.';
@@ -253,12 +252,16 @@ if (loginForm) {
     loggedIn = true;
 
     if (loginMessage) {
-      loginMessage.textContent =
-        'Login realizado com sucesso! 🎉';
+      loginMessage.textContent = 'Login realizado com sucesso! 🎉';
     }
 
-    if (publishArea) publishArea.style.display = 'block';
-    if (loginForm) loginForm.style.display = 'none';
+    if (publishArea) {
+      publishArea.style.display = 'block';
+    }
+
+    if (loginForm) {
+      loginForm.style.display = 'none';
+    }
 
     await load();
   });
@@ -272,51 +275,20 @@ if (newsForm) {
     const contentElement = document.querySelector('#news-content');
     const imageElement = document.querySelector('#news-image');
 
-    const titulo = titleElement
-      ? titleElement.value.trim()
-      : '';
-
-    const conteudo = contentElement
-      ? contentElement.value.trim()
-      : '';
-
-    const imagem = imageElement
-      ? imageElement.value.trim()
-      : '';
+    const titulo = titleElement ? titleElement.value.trim() : '';
+    const conteudo = contentElement ? contentElement.value.trim() : '';
+    const imagem = imageElement ? imageElement.value.trim() : '';
 
     if (!titulo || !conteudo) {
       if (newsMessage) {
-        newsMessage.textContent =
-          'Preencha o título e o conteúdo da notícia.';
+        newsMessage.textContent = 'Preencha o título e o conteúdo.';
       }
-      return;
-    }
 
-    if (!loggedIn) {
-      if (newsMessage) {
-        newsMessage.textContent =
-          'Você precisa estar logado para publicar.';
-      }
       return;
     }
 
     if (newsMessage) {
       newsMessage.textContent = 'Publicando...';
-    }
-
-    const sessionResult = await supabase.auth.getSession();
-    const session = sessionResult.data.session;
-
-    if (!session) {
-      loggedIn = false;
-
-      if (newsMessage) {
-        newsMessage.textContent =
-          'Sua sessão expirou. Faça login novamente.';
-      }
-
-      await checkLogin();
-      return;
     }
 
     const result = await supabase
@@ -328,19 +300,17 @@ if (newsForm) {
       });
 
     if (result.error) {
-      console.error('ERRO AO PUBLICAR:', result.error);
+      console.error(result.error);
 
       if (newsMessage) {
-        newsMessage.textContent =
-          'Erro ao publicar: ' + result.error.message;
+        newsMessage.textContent = 'Erro ao publicar a notícia.';
       }
 
       return;
     }
 
     if (newsMessage) {
-      newsMessage.textContent =
-        'Notícia publicada com sucesso! 🎉';
+      newsMessage.textContent = 'Notícia publicada com sucesso! 🎉';
     }
 
     newsForm.reset();
@@ -357,23 +327,28 @@ if (logoutButton) {
     const result = await supabase.auth.signOut();
 
     if (result.error) {
-      console.error('Erro ao sair:', result.error);
+      console.error(result.error);
 
       logoutButton.disabled = false;
       logoutButton.textContent = 'Sair do administrador';
 
       alert('Não foi possível sair. Tente novamente.');
+
       return;
     }
 
     loggedIn = false;
 
-    if (publishArea) publishArea.style.display = 'none';
-    if (loginForm) loginForm.style.display = 'block';
+    if (publishArea) {
+      publishArea.style.display = 'none';
+    }
+
+    if (loginForm) {
+      loginForm.style.display = 'block';
+    }
 
     if (loginMessage) {
-      loginMessage.textContent =
-        'Você saiu do administrador.';
+      loginMessage.textContent = 'Você saiu do administrador.';
     }
 
     await load();
@@ -386,15 +361,29 @@ supabase.auth.onAuthStateChange(function (_event, session) {
   loggedIn = !!session;
 
   if (session) {
-    if (publishArea) publishArea.style.display = 'block';
-    if (loginForm) loginForm.style.display = 'none';
+    if (publishArea) {
+      publishArea.style.display = 'block';
+    }
+
+    if (loginForm) {
+      loginForm.style.display = 'none';
+    }
   } else {
-    if (publishArea) publishArea.style.display = 'none';
-    if (loginForm) loginForm.style.display = 'block';
+    if (publishArea) {
+      publishArea.style.display = 'none';
+    }
+
+    if (loginForm) {
+      loginForm.style.display = 'block';
+    }
   }
+
+  load();
 });
 
-checkLogin().then(function () {
-  return load();
-});
-```
+async function iniciar() {
+  await checkLogin();
+  await load();
+}
+
+iniciar();
