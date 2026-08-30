@@ -25,7 +25,6 @@ function esc(value) {
       '"': '&quot;',
       "'": '&#039;'
     };
-
     return entities[char];
   });
 }
@@ -45,8 +44,7 @@ async function load() {
 
     if (result.error || !result.data) {
       console.error('Erro ao carregar notícia:', result.error);
-      list.innerHTML =
-        '<div class="empty">Notícia não encontrada.</div>';
+      list.innerHTML = '<div class="empty">Notícia não encontrada.</div>';
       return;
     }
 
@@ -228,8 +226,7 @@ if (loginForm) {
 
     if (!email || !password) {
       if (loginMessage) {
-        loginMessage.textContent =
-          'Digite o e-mail e a senha.';
+        loginMessage.textContent = 'Digite o e-mail e a senha.';
       }
       return;
     }
@@ -247,8 +244,7 @@ if (loginForm) {
       console.error('Erro no login:', result.error);
 
       if (loginMessage) {
-        loginMessage.textContent =
-          'E-mail ou senha incorretos.';
+        loginMessage.textContent = 'E-mail ou senha incorretos.';
       }
 
       return;
@@ -308,10 +304,10 @@ if (newsForm) {
       newsMessage.textContent = 'Publicando...';
     }
 
-    const { data: sessionData } =
-      await supabase.auth.getSession();
+    const sessionResult = await supabase.auth.getSession();
+    const session = sessionResult.data.session;
 
-    if (!sessionData.session) {
+    if (!session) {
       loggedIn = false;
 
       if (newsMessage) {
@@ -329,23 +325,18 @@ if (newsForm) {
         titulo: titulo,
         conteudo: conteudo,
         imagem: imagem || null
-      })
-      .select()
-      .single();
+      });
 
     if (result.error) {
       console.error('ERRO AO PUBLICAR:', result.error);
 
       if (newsMessage) {
         newsMessage.textContent =
-          'Erro ao publicar: ' +
-          result.error.message;
+          'Erro ao publicar: ' + result.error.message;
       }
 
       return;
     }
-
-    console.log('Notícia publicada:', result.data);
 
     if (newsMessage) {
       newsMessage.textContent =
