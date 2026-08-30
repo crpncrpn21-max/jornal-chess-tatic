@@ -1,12 +1,14 @@
-   ```html
-<!doctype html>
+ <!doctype html>
 <html lang="pt-BR">
 <head>
 <meta name="google-site-verification" content="0KqpG6rA8PI2oJ-ybZ-qj3lHZbq8puYkd7NkWARvIB0" />
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
 <title>Jornal Chess Tatic</title>
+
 <meta name="description" content="Jornal Chess Tatic: notícias, partidas, curiosidades e estratégias do mundo do xadrez.">
+
 <link rel="stylesheet" href="/style.css">
 </head>
 
@@ -14,6 +16,7 @@
 
 <header>
   <b>♟ JORNAL CHESS TATIC</b>
+
   <nav>
     <a href="#inicio">Início</a>
     <a href="#noticias">Notícias</a>
@@ -26,55 +29,119 @@
 
 <section class="hero">
   <span>JORNAL DE XADREZ</span>
+
   <h1>O mundo do xadrez em um só lugar.</h1>
+
   <p>Notícias, partidas, curiosidades e estratégias.</p>
+
   <a class="btn" href="#noticias">Ler notícias</a>
 </section>
 
+
 <section id="noticias">
   <h2>Últimas notícias</h2>
-  <div id="news-list">Carregando notícias...</div>
+
+  <div id="news-list">
+    Carregando notícias...
+  </div>
 </section>
+
 
 <section id="sobre">
   <h2>Sobre</h2>
-  <p>Jornal Chess Tatic — informação e xadrez.</p>
+
+  <p>
+    Jornal Chess Tatic — informação e xadrez.
+  </p>
 </section>
 
+
+<!-- ÁREA ADMINISTRATIVA -->
 <section id="admin">
+
   <h2>Área do administrador</h2>
 
-  <form id="login-form">
-    <input id="login-email" type="email" placeholder="E-mail" required>
-    <input id="login-password" type="password" placeholder="Senha" required>
-    <button type="submit">Entrar</button>
-    <p id="login-message"></p>
-  </form>
+  <!-- LOGIN -->
+  <div id="login-area">
 
+    <form id="login-form">
+
+      <input
+        id="login-email"
+        type="email"
+        placeholder="E-mail"
+        required
+      >
+
+      <input
+        id="login-password"
+        type="password"
+        placeholder="Senha"
+        required
+      >
+
+      <button type="submit">
+        Entrar
+      </button>
+
+      <p id="login-message"></p>
+
+    </form>
+
+  </div>
+
+
+  <!-- ÁREA DE PUBLICAÇÃO -->
   <div id="publish-area" style="display:none;">
+
     <h3>Publicar notícia</h3>
 
     <form id="news-form">
-      <input id="news-title" type="text" placeholder="Título da notícia" required>
 
-      <textarea id="news-content" placeholder="Conteúdo da notícia" required></textarea>
+      <input
+        id="news-title"
+        type="text"
+        placeholder="Título da notícia"
+        required
+      >
 
-      <input id="news-image" type="url" placeholder="URL da imagem (opcional)">
+      <textarea
+        id="news-content"
+        placeholder="Conteúdo da notícia"
+        required
+      ></textarea>
 
-      <button type="submit">Publicar notícia</button>
+      <input
+        id="news-image"
+        type="url"
+        placeholder="URL da imagem (opcional)"
+      >
+
+      <button type="submit">
+        Publicar notícia
+      </button>
 
       <p id="news-message"></p>
+
     </form>
+
+    <button id="logout-button" type="button">
+      Sair do administrador
+    </button>
+
   </div>
 
 </section>
 
 </main>
 
-<footer>Jornal Chess Tatic • 2026</footer>
+
+<footer>
+  Jornal Chess Tatic • 2026
+</footer>
+
 
 <script type="module" src="/src/main.js"></script>
 
 </body>
 </html>
-```
