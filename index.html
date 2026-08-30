@@ -17,15 +17,12 @@ let loggedIn = false;
 
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, function (char) {
-    const entities = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;'
-    };
-
-    return entities[char];
+    if (char === '&') return '&amp;';
+    if (char === '<') return '&lt;';
+    if (char === '>') return '&gt;';
+    if (char === '"') return '&quot;';
+    if (char === "'") return '&#039;';
+    return char;
   });
 }
 
@@ -103,19 +100,14 @@ async function load() {
 
   if (result.error) {
     console.error(result.error);
-
-    list.innerHTML =
-      '<div class="empty">Não foi possível carregar as notícias.</div>';
-
+    list.innerHTML = '<div class="empty">Não foi possível carregar as notícias.</div>';
     return;
   }
 
   const noticias = result.data || [];
 
   if (noticias.length === 0) {
-    list.innerHTML =
-      '<div class="empty">Ainda não há notícias publicadas.</div>';
-
+    list.innerHTML = '<div class="empty">Ainda não há notícias publicadas.</div>';
     return;
   }
 
@@ -178,7 +170,6 @@ function configurarBotoesExcluir() {
 
       if (result.error) {
         console.error(result.error);
-
         alert('Não foi possível excluir a notícia.');
 
         button.disabled = false;
