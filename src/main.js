@@ -42,7 +42,7 @@ async function load() {
       return;
     }
 
-    document.title = `${noticia.titulo} | Jornal Chess Tatic`;
+    document.title = noticia.titulo + ' | Jornal Chess Tatic';
 
     let metaDescription = document.querySelector('meta[name="description"]');
 
@@ -86,7 +86,7 @@ async function load() {
     return;
   }
 
-  if (!data.length) {
+  if (!data || !data.length) {
     list.innerHTML = '<div class="empty">Ainda não há notícias publicadas.</div>';
     return;
   }
@@ -108,7 +108,9 @@ async function load() {
 }
 
 async function deleteNews(id) {
-  if (!confirm('Tem certeza que deseja excluir esta notícia?')) return;
+  if (!confirm('Tem certeza que deseja excluir esta notícia?')) {
+    return;
+  }
 
   const { error } = await supabase
     .from('noticias')
@@ -131,25 +133,12 @@ async function checkLogin() {
   loggedIn = !!data.session;
 
   if (data.session) {
-    if (publishArea) {
-      publishArea.style.display = 'block';
-    }
-
-    if (loginForm) {
-      loginForm.style.display = 'none';
-    }
-
-    if (loginMessage) {
-      loginMessage.textContent = 'Login realizado com sucesso!';
-    }
+    if (publishArea) publishArea.style.display = 'block';
+    if (loginForm) loginForm.style.display = 'none';
+    if (loginMessage) loginMessage.textContent = 'Login realizado com sucesso!';
   } else {
-    if (publishArea) {
-      publishArea.style.display = 'none';
-    }
-
-    if (loginForm) {
-      loginForm.style.display = 'block';
-    }
+    if (publishArea) publishArea.style.display = 'none';
+    if (loginForm) loginForm.style.display = 'block';
   }
 }
 
@@ -178,8 +167,8 @@ if (loginForm) {
 
     loginMessage.textContent = 'Login realizado com sucesso! 🎉';
 
-    publishArea.style.display = 'block';
-    loginForm.style.display = 'none';
+    if (publishArea) publishArea.style.display = 'block';
+    if (loginForm) loginForm.style.display = 'none';
 
     await load();
   });
@@ -221,7 +210,6 @@ if (newsForm) {
 /* LOGOUT */
 if (logoutButton) {
   logoutButton.addEventListener('click', async () => {
-
     logoutButton.disabled = true;
     logoutButton.textContent = 'Saindo...';
 
@@ -239,8 +227,8 @@ if (logoutButton) {
 
     loggedIn = false;
 
-    publishArea.style.display = 'none';
-    loginForm.style.display = 'block';
+    if (publishArea) publishArea.style.display = 'none';
+    if (loginForm) loginForm.style.display = 'block';
 
     if (loginMessage) {
       loginMessage.textContent = 'Você saiu do administrador.';
